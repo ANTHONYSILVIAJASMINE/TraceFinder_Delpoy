@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 import os
+import urllib.request
 
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image as keras_image
@@ -160,13 +161,25 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ------------------------
-# Model Loading
+# 🔥 Model Loading (Google Drive)
 # ------------------------
+# ------------------------
+# 🔥 Model Loading (Google Drive)
+# ------------------------
+FILE_ID = "1OFWjpu7yBT5GQttM3xVXToEX_mrxPJff"
+MODEL_URL = f"https://drive.google.com/uc?id={FILE_ID}"
+MODEL_PATH = "scanner_model.h5"
+
 @st.cache_resource
 def load_cnn_model():
-    return load_model("model.h5")
+    if not os.path.exists(MODEL_PATH):
+        st.info("⬇️ Downloading AI model… please wait (first run only)")
+        urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+
+    return load_model(MODEL_PATH)
 
 model = load_cnn_model()
+
 
 class_names = ['Canon', 'Epson', 'HP', 'Xerox']
 
@@ -243,9 +256,6 @@ if uploaded_file:
         </div>
         """, unsafe_allow_html=True)
 
-        # ✅ SPACE ADDED (ONLY ADDITION)
-        st.markdown("")
-
     with col2:
         st.success(f"Brand: {top_scanner}")
         st.info(f"Model: {model_name}")
@@ -253,83 +263,4 @@ if uploaded_file:
         st.progress(int(confidence))
         st.caption(f"Confidence Level: {level}")
 
-    # ------------------------
-    # 📊 Prediction Confidence Bar Graph
-    # ------------------------
-    labels = [p[0] for p in predictions]
-    values = [p[1] for p in predictions]
-
-    fig1, ax1 = plt.subplots(figsize=(5,3))
-    ax1.bar(labels, values)
-    ax1.set_ylim(0, 100)
-    ax1.set_ylabel("Confidence (%)")
-    ax1.set_title("Top Scanner Predictions")
-    st.pyplot(fig1)
-
-    # ------------------------
-    # 📈 Algorithm Accuracy Comparison
-    # ------------------------
-    algorithms = ["CNN (Proposed)", "SVM", "Random Forest", "KNN"]
-    accuracies = [94.6, 86.2, 88.9, 82.4]
-
-    fig2, ax2 = plt.subplots(figsize=(5,3))
-    ax2.plot(algorithms, accuracies, marker="o")
-    ax2.set_ylim(75, 100)
-    ax2.set_ylabel("Accuracy (%)")
-    ax2.set_title("Algorithm Accuracy Comparison")
-    ax2.grid(True, linestyle="--", alpha=0.6)
-    st.pyplot(fig2)
-
-    # ------------------------
-    # History
-    # ------------------------
-    record = {
-        "Timestamp": timestamp,
-        "Scanner": top_scanner,
-        "Model": model_name,
-        "Confidence (%)": round(confidence,2),
-        "Confidence Level": level
-    }
-    st.session_state.history.append(record)
-
-    df = pd.DataFrame(st.session_state.history)
-    st.subheader("📁 Prediction History")
-    st.dataframe(df, use_container_width=True)
-
-    st.download_button(
-        "⬇️ Download CSV",
-        df.to_csv(index=False).encode(),
-        "tracefinder_history.csv"
-    )
-
-    # ------------------------
-    # 📄 PDF Report Download
-    # ------------------------
-    def generate_pdf():
-        file_name = "TraceFinder_Report.pdf"
-        doc = SimpleDocTemplate(file_name, pagesize=A4)
-        styles = getSampleStyleSheet()
-
-        content = [
-            Paragraph("<b>TraceFinder Report</b>", styles["Title"]),
-            Paragraph(f"Scanner Brand: {top_scanner}", styles["Normal"]),
-            Paragraph(f"Scanner Model: {model_name}", styles["Normal"]),
-            Paragraph(f"Confidence: {confidence:.2f}%", styles["Normal"]),
-            Paragraph(f"Confidence Level: {level}", styles["Normal"]),
-            Paragraph(f"Timestamp: {timestamp}", styles["Normal"]),
-        ]
-
-        doc.build(content)
-        return file_name
-
-    if st.button("📄 Generate PDF Report"):
-        pdf = generate_pdf()
-        with open(pdf, "rb") as f:
-            st.download_button(
-                "⬇️ Download PDF Report",
-                f,
-                file_name="TraceFinder_Report.pdf"
-            )
-
-else:
     st.info("👈 Upload a scanner image to start analysis.")
