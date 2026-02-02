@@ -7,3 +7,7 @@ tensorflow
 scikit-learn
 opencv-python
 reportlab
+tensorflow
+gdown
+h5py
+
